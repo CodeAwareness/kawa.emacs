@@ -771,7 +771,9 @@ Argument HIGHLIGHT-DATA the array of lines to highlight."
             (type (alist-get 'type highlight))
             (properties (alist-get 'properties highlight)))
         (when (and line type)
-          (run-with-timer 1.0 nil (code-awareness--add-hl-line-highlight buffer line type properties)))))))
+          (run-with-timer 1.0 nil
+                          (lambda ()
+                            (code-awareness--add-hl-line-highlight buffer line type properties))))))))
 
 ;;; IPC Communication
 
@@ -895,6 +897,11 @@ Argument DATA the data received from Code Awareness application."
   ;; Extract and apply highlights from the hl data structure
   (let* ((hl-data (alist-get 'hl data))
          (buffer code-awareness--active-buffer))
+    ;; Debug logging for highlight data
+    (code-awareness-log-info "hl-data received: %s" (prin1-to-string hl-data))
+    (code-awareness-log-info "hl-data type: %s, length: %s"
+                            (type-of hl-data)
+                            (if hl-data (length hl-data) "nil"))
     (if (and hl-data buffer (buffer-live-p buffer))
         ;; Validate that the buffer still corresponds to the expected file
         (let ((current-file-path (buffer-file-name buffer)))
@@ -905,6 +912,7 @@ Argument DATA the data received from Code Awareness application."
               (progn
                 ;; Convert hl data to highlight format
                 (let ((highlights (code-awareness--convert-hl-to-highlights hl-data)))
+                  (code-awareness-log-info "Number of highlights: %s" (length highlights))
                   (when highlights
                     (code-awareness--apply-highlights-from-data buffer highlights)))))))))
 
@@ -1221,6 +1229,8 @@ FILE-PATH is the file path associated with this request (for validation)."
       (puthash res-key #'code-awareness--handle-peer-diff-response code-awareness--response-handlers))
      ((string= (format "%s:%s" domain action) "code:repo:branch:select")
       (puthash res-key #'code-awareness--handle-branch-diff-response code-awareness--response-handlers))
+     ((string= (format "%s:%s" domain action) "code:repo:get-tmp-dir")
+      (puthash res-key #'code-awareness--handle-get-tmp-dir-response code-awareness--response-handlers))
      ((string= (format "%s:%s" domain action) "code:context:apply")
       (puthash res-key #'code-awareness--handle-context-apply-response code-awareness--response-handlers))
      ((or (string= (format "%s:%s" domain action) "*:auth:info")
@@ -1322,8 +1332,37 @@ Argument ERROR-DATA error message received from the request."
 (defun code-awareness--init-workspace ()
   "Initialize workspace."
   (code-awareness-log-info "Workspace initialized")
+  ;; Request temp directory from local service
+  (code-awareness--request-tmp-dir)
   ;; Send auth:info request after a short delay to ensure connection is ready
   (run-with-timer 0.1 nil #'code-awareness--send-auth-info))
+
+(defun code-awareness--request-tmp-dir ()
+  "Request temp directory from the Code Awareness local service."
+  (code-awareness-log-info "Requesting temp directory from local service")
+  (if (and code-awareness--ipc-process
+           (eq (process-status code-awareness--ipc-process) 'open))
+      (progn
+        (code-awareness--transmit "repo:get-tmp-dir" code-awareness--guid)
+        (code-awareness--setup-response-handler "code" "repo:get-tmp-dir"))
+    (code-awareness-log-error "IPC process not ready for get-tmp-dir request")))
+
+(defun code-awareness--handle-get-tmp-dir-response (data)
+  "Handle response from repo:get-tmp-dir request.
+Argument DATA the data received from Code Awareness application."
+  (let ((tmp-dir (alist-get 'tmpDir data)))
+    (when tmp-dir
+      (setq code-awareness--tmp-dir tmp-dir)
+      (code-awareness-log-info "Received temp directory from local service: %s" tmp-dir)
+      ;; Update LSP blocklist with the actual temp directory
+      (when (and (featurep 'lsp-mode) (boundp 'lsp-session-folders-blocklist))
+        (add-to-list 'lsp-session-folders-blocklist tmp-dir)
+        (code-awareness-log-info "Added actual temp directory to LSP blocklist: %s" tmp-dir))
+      ;; Update recentf exclude with the actual temp directory
+      (when (and (featurep 'recentf) (boundp 'recentf-exclude))
+        (add-to-list 'recentf-exclude
+                     (concat "^" (regexp-quote (expand-file-name tmp-dir))))
+        (code-awareness-log-info "Added actual temp directory to recentf-exclude: %s" tmp-dir)))))
 
 (defun code-awareness--send-auth-info ()
   "Send auth:info request to the Code Awareness IPC."
@@ -1609,6 +1648,15 @@ Enable Code Awareness functionality for collaborative development."
   ;; Set the current buffer as active if it has a file (like VSCode's activeTextEditor)
   (when (and (current-buffer) (buffer-file-name (current-buffer)))
     (setq code-awareness--active-buffer (current-buffer)))
+  ;; Add temp directory to LSP blocklist to prevent LSP from treating temp files as projects
+  (when (and (featurep 'lsp-mode) (boundp 'lsp-session-folders-blocklist))
+    (add-to-list 'lsp-session-folders-blocklist code-awareness--tmp-dir)
+    (code-awareness-log-info "Added temp directory to LSP blocklist: %s" code-awareness--tmp-dir))
+  ;; Add temp directory to recentf exclude list to prevent temp files from appearing in recent files
+  (when (and (featurep 'recentf) (boundp 'recentf-exclude))
+    (add-to-list 'recentf-exclude
+                 (concat "^" (regexp-quote (expand-file-name code-awareness--tmp-dir))))
+    (code-awareness-log-info "Added temp directory to recentf-exclude: %s" code-awareness--tmp-dir))
   (code-awareness-log-info "Code Awareness enabled"))
 
 (defun code-awareness--disable ()
