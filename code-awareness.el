@@ -1563,13 +1563,11 @@ Argument DATA the data received from Code Awareness application."
           (let ((current-file (buffer-file-name current-buffer))
                 (active-file (when code-awareness--active-buffer
                                (buffer-file-name code-awareness--active-buffer))))
-            (if (and code-awareness--active-buffer active-file
-                     (string= current-file active-file))
-                ;; Same file, no need to update active buffer
-                ;; Different file or no active buffer, update and refresh
-                (progn
-                  (setq code-awareness--active-buffer current-buffer)
-                  (code-awareness--refresh-active-file))))
+            (unless (and code-awareness--active-buffer active-file
+                         (string= current-file active-file))
+              ;; Different file or no active buffer, update and refresh
+              (setq code-awareness--active-buffer current-buffer)
+              (code-awareness--refresh-active-file)))
         ;; Don't clear active buffer when switching to non-file buffers
         ))))
 
@@ -1694,14 +1692,11 @@ Enable Code Awareness functionality for collaborative development."
       (let ((current-file (buffer-file-name current-buffer))
             (active-file (when code-awareness--active-buffer
                            (buffer-file-name code-awareness--active-buffer))))
-        (if (and code-awareness--active-buffer active-file
-                 (string= current-file active-file))
-            ;; Same file, no need to update active buffer
-            ()
+        (unless (and code-awareness--active-buffer active-file
+                     (string= current-file active-file))
           ;; Different file or no active buffer, update and refresh
-          (progn
-            (setq code-awareness--active-buffer current-buffer)
-            (code-awareness--refresh-active-file)))))))
+          (setq code-awareness--active-buffer current-buffer)
+          (code-awareness--refresh-active-file))))))
 
 (defun code-awareness--cleanup-on-exit ()
   "Cleanup Code Awareness when Emacs is about to exit."
