@@ -1565,9 +1565,13 @@ Argument DATA the data received from Code Awareness application."
                                (buffer-file-name code-awareness--active-buffer))))
             (unless (and code-awareness--active-buffer active-file
                          (string= current-file active-file))
-              ;; Different file or no active buffer, update and refresh
-              (setq code-awareness--active-buffer current-buffer)
-              (code-awareness--refresh-active-file)))
+              ;; Skip updates during EDiff sessions to avoid triggering events on every hunk navigation
+              ;; Check if the file is in the temp directory (peer file) or if we're in an EDiff session
+              (unless (or (string-prefix-p (expand-file-name code-awareness--tmp-dir) current-file)
+                          (bound-and-true-p ediff-this-buffer-ediff-sessions))
+                ;; Different file or no active buffer, update and refresh
+                (setq code-awareness--active-buffer current-buffer)
+                (code-awareness--refresh-active-file))))
         ;; Don't clear active buffer when switching to non-file buffers
         ))))
 
@@ -1694,9 +1698,13 @@ Enable Code Awareness functionality for collaborative development."
                            (buffer-file-name code-awareness--active-buffer))))
         (unless (and code-awareness--active-buffer active-file
                      (string= current-file active-file))
-          ;; Different file or no active buffer, update and refresh
-          (setq code-awareness--active-buffer current-buffer)
-          (code-awareness--refresh-active-file))))))
+          ;; Skip updates during EDiff sessions to avoid triggering events on every hunk navigation
+          ;; Check if the file is in the temp directory (peer file) or if we're in an EDiff session
+          (unless (or (string-prefix-p (expand-file-name code-awareness--tmp-dir) current-file)
+                      (bound-and-true-p ediff-this-buffer-ediff-sessions))
+            ;; Different file or no active buffer, update and refresh
+            (setq code-awareness--active-buffer current-buffer)
+            (code-awareness--refresh-active-file)))))))
 
 (defun code-awareness--cleanup-on-exit ()
   "Cleanup Code Awareness when Emacs is about to exit."
