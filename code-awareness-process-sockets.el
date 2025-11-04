@@ -27,7 +27,6 @@
 ;; <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;; TODO
 
 ;;; API Functions
 
@@ -40,7 +39,7 @@
 
 ;;;###autoload
 (cl-defun code-awareness-process-socket-create (process &optional (pipe-buf-size code-awareness-pipe-default-buf-size))
-  "Create a socket for communicating with `PROCESS'.
+  "Create a socket for communicating with PROCESS.
 Optional argument PIPE-BUF-SIZE buffer size for pipe read-write."
   (unless (>= emacs-major-version 27)
     (error "Emacs 27+ is required"))
@@ -60,7 +59,7 @@ Optional argument PIPE-BUF-SIZE buffer size for pipe read-write."
                                   (when sock-output-ready
                                     (setq sock-output-ready nil)
                                     (throw 'done t)))
-                                (sleep-for 0 1)))
+                                (sleep-for 0.001)))
                           (with-mutex sock-mutex
                             (while (not sock-output-ready)
                               (condition-wait sock-cv-output-ready))
@@ -68,13 +67,13 @@ Optional argument PIPE-BUF-SIZE buffer size for pipe read-write."
          (output-pipe (code-awareness-pipe-make-pipe pipe-buf-size))
          (auto-flush nil))
     ;; Write output from the process to the socket's input stream.
-    (set-process-filter process (lambda (process string)
+    (set-process-filter process (lambda (_process string)
                                   (with-mutex sock-mutex
                                     (code-awareness-pipe-write! input-pipe string)
                                     (setq sock-output-ready t)
                                     (condition-notify sock-cv-output-ready t))))
     (lambda (fn-or-var &rest args)
-      (case fn-or-var
+      (cl-case fn-or-var
             ;; Accessors
             ((process)
              process)

@@ -2,7 +2,7 @@
 
 ;; Author: Mark Vasile <mark@code-awareness.com>
 ;; Package-Requires: ((emacs "27.1"))
-;; Keywords: code awareness, collaboration, development, convenience tools
+;; Keywords: code-awareness, collaboration, development, convenience tools, kawa-code
 ;; Homepage: https://github.com/CodeAwareness/ca.emacs
 
 ;; Version: 1.0.0
