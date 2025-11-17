@@ -2,7 +2,7 @@
 
 ;; Author: Mark Vasile <mark@code-awareness.com>
 ;; Package-Requires: ((emacs "27.1"))
-;; Keywords: code awareness, collaboration, development, convenience tools
+;; Keywords: tools, convenience, vc
 ;; Homepage: https://github.com/CodeAwareness/ca.emacs
 
 ;; Version: 1.0.0
@@ -38,6 +38,10 @@
 (require 'code-awareness-list-pipe)
 (require 'code-awareness-process-sockets)
 (require 'hl-line nil t)
+
+;; Declare functions from ediff-util (optional dependency)
+(declare-function ediff-buffers "ediff" (buffer-a buffer-b &optional startup-hooks job-name merge-buffer-file))
+(declare-function ediff-quit "ediff-util" (reverse-default-keep-variants))
 
 ;;; Configuration
 

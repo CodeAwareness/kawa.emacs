@@ -5,7 +5,6 @@
 ;; Author: Isaac Lewis <isaac.b.lewis@gmail.com>
 ;; Maintainer Isaac Lewis <isaac.b.lewis@gmail.com>
 ;; Homepage: https://github.com/IkeLewis/process-sockets
-;; Package-Requires: ((emacs "27.1"))
 ;; Version: 1.0.0
 ;; Keywords: comm
 
@@ -126,9 +125,8 @@ Optional argument UNDERFLOW-HANDLER handler in case of underflow"
            (code-awareness-list-pipe-read! ,list-pipe unread))))
 
 
-(defmacro code-awareness-list-pipe-read-all! (list-pipe &optional unread)
-  "Read all available characters from `LIST-PIPE'.
-Optional argument UNREAD char or string."
+(defmacro code-awareness-list-pipe-read-all! (list-pipe)
+  "Read all available characters from `LIST-PIPE'."
   `(prog1
        (concat ,list-pipe)
      (setf ,list-pipe nil)))

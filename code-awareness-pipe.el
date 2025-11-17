@@ -5,7 +5,6 @@
 ;; Author: Isaac Lewis <isaac.b.lewis@gmail.com>
 ;; Maintainer Isaac Lewis <isaac.b.lewis@gmail.com>
 ;; Homepage: https://github.com/IkeLewis/process-sockets
-;; Package-Requires: ((emacs "27.1"))
 ;; Version: 1.0.0
 ;; Keywords: comm
 
