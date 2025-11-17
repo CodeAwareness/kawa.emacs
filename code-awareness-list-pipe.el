@@ -23,7 +23,6 @@
 ;; <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;; TODO
 
 ;;{{{
 ;; Code:
@@ -92,7 +91,7 @@ Optional argument UNDERFLOW-HANDLER handler in case of underflow"
   `(progn
      (unless (listp ,list-pipe)
        (error "List-pipe must be a list-pipe"))
-     (let ((_unread2
+     (let ((unread2
             (cond ((and (stringp ,unread)
                         (equal (length ,unread) 1))
                    (string-to-char ,unread))
@@ -102,8 +101,8 @@ Optional argument UNDERFLOW-HANDLER handler in case of underflow"
                   (t
                    (error "Unread must be a character or a string
      containing a single character"))))  )
-       (if _unread2
-           (push _unread2 ,list-pipe)
+       (if unread2
+           (push unread2 ,list-pipe)
          (or (pop ,list-pipe)
              (funcall (or ,underflow-handler
                           code-awareness-list-pipe-default-underflow-handler)))))))

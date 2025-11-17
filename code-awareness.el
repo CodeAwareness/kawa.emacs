@@ -26,7 +26,7 @@
 ;;; Commentary:
 
 ;; Code Awareness highlights the code intersections between your working
-;; copy and other team members. This provides an early warning system
+;; copy and other team members.  This provides an early warning system
 ;; for merge conflicts, as well as instant traveling between working
 ;; copies of multiple developers without needing to commit and push.
 
@@ -664,7 +664,7 @@ Argument HIGHLIGHT-DATA the array of lines to highlight."
 (defun code-awareness--convert-hl-to-highlights (hl-data)
   "Convert hl data structure to highlight format.
 HL-DATA should be an array
-of line numbers. Returns a list of highlight alists with \\='line and \\='type keys."
+of line numbers.  Returns a list of highlight alists with \\='line and \\='type keys."
   (let ((highlights '()))
     ;; Handle both lists and vectors (JSON arrays are parsed as vectors)
     (when (and (or (listp hl-data) (vectorp hl-data))
@@ -1095,7 +1095,8 @@ Argument FILE2 the second file in the diff command."
   "Handle BRANCH selection event.
 Two cases:
 1. String branch name from webview - transmit to Gardener for processing
-2. Response data from Gardener/Muninn with peerFile/userFile - open diff directly
+2. Response data from Gardener/Muninn with peerFile/userFile
+   - open diff directly
 Argument BRANCH-OR-DATA either a string branch name or an alist with diff data."
   (cond
    ;; Case 1: Branch name string - need to request diff from Gardener
@@ -1150,7 +1151,7 @@ Argument BRANCH-OR-DATA either a string branch name or an alist with diff data."
   (message "Logged out"))
 
 (defun code-awareness--handle-context-add (context)
-  "Handle CONTEXT add event. TODO: work in progress."
+  "Handle CONTEXT add event.  TODO: work in progress."
   (code-awareness-log-info "Context add requested: %s" context)
   (let* ((active-project code-awareness--active-project)
          (root (alist-get 'root active-project))
