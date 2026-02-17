@@ -1,6 +1,6 @@
-# Peer Selection in CodeAwareness for Emacs
+# Peer Selection in Kawacode for Emacs
 
-This document describes the peer selection functionality in CodeAwareness for Emacs, which allows you to view diffs between your working copy and a peer's version of the same file.
+This document describes the peer selection functionality in Kawacode for Emacs, which allows you to view diffs between your working copy and a peer's version of the same file.
 
 ## Overview
 
@@ -17,9 +17,9 @@ When a peer is selected in the Muninn app, the local service sends a `peer:selec
 
 The implementation uses an event-driven architecture with a centralized event handler table:
 
-- `codeawareness--events-table`: Hash table mapping event names to handler functions
-- `codeawareness--register-event-handler()`: Registers new event handlers
-- `codeawareness--init-event-handlers()`: Initializes all event handlers
+- `kawacode--events-table`: Hash table mapping event names to handler functions
+- `kawacode--register-event-handler()`: Registers new event handlers
+- `kawacode--init-event-handlers()`: Initializes all event handlers
 
 ### Message Flow
 
@@ -31,11 +31,11 @@ The implementation uses an event-driven architecture with a centralized event ha
 
 ### Key Functions
 
-- `codeawareness--handle-peer-select(peer-data)`: Handles peer selection events
-- `codeawareness--handle-peer-unselect()`: Handles peer unselection events
-- `codeawareness--handle-peer-diff-response(data)`: Processes diff response data
-- `codeawareness--open-diff-view(peer-file, user-file, title)`: Opens the diff view
-- `codeawareness--close-diff-buffers()`: Closes all diff buffers
+- `kawacode--handle-peer-select(peer-data)`: Handles peer selection events
+- `kawacode--handle-peer-unselect()`: Handles peer unselection events
+- `kawacode--handle-peer-diff-response(data)`: Processes diff response data
+- `kawacode--open-diff-view(peer-file, user-file, title)`: Opens the diff view
+- `kawacode--close-diff-buffers()`: Closes all diff buffers
 
 ## Usage
 
@@ -43,7 +43,7 @@ The implementation uses an event-driven architecture with a centralized event ha
 
 The peer selection functionality works automatically when:
 
-1. CodeAwareness mode is enabled (`M-x codeawareness-mode`)
+1. Kawacode mode is enabled (`M-x kawacode-mode`)
 2. You have an active file open
 3. A peer is selected in the Muninn app
 
@@ -66,7 +66,7 @@ The implementation supports two diff viewing modes:
 
 ## Configuration
 
-No additional configuration is required. The functionality integrates with the existing CodeAwareness infrastructure.
+No additional configuration is required. The functionality integrates with the existing Kawacode infrastructure.
 
 ## Testing
 
@@ -90,20 +90,20 @@ Run the test suite to verify the functionality:
 Enable debug logging to see detailed information about peer selection events:
 
 ```elisp
-(setq codeawareness-log-level 'debug)
+(setq kawacode-log-level 'debug)
 ```
 
 ## Implementation Details
 
 ### Event Handler Registration
 
-Event handlers are registered in `codeawareness--init-event-handlers()`:
+Event handlers are registered in `kawacode--init-event-handlers()`:
 
 ```elisp
-(codeawareness--register-event-handler "peer:select" #'codeawareness--handle-peer-select)
-(codeawareness--register-event-handler "peer:unselect" #'codeawareness--handle-peer-unselect)
-(codeawareness--register-event-handler "branch:select" #'codeawareness--handle-branch-select)
-(codeawareness--register-event-handler "auth:logout" #'codeawareness--handle-auth-logout)
+(kawacode--register-event-handler "peer:select" #'kawacode--handle-peer-select)
+(kawacode--register-event-handler "peer:unselect" #'kawacode--handle-peer-unselect)
+(kawacode--register-event-handler "branch:select" #'kawacode--handle-branch-select)
+(kawacode--register-event-handler "auth:logout" #'kawacode--handle-auth-logout)
 ;; ... more handlers
 ```
 
@@ -121,7 +121,7 @@ Peer selection messages follow this format:
     "name": "Alice",
     "company": "Kawa Code",
     "phone": "123-123-1234",
-    "email": "alice@codeawareness.com",
+    "email": "alice@kawacode.com",
     "createdAt": "2025-02-24T08:56:18.540Z",
     "active": true,
     "updatedAt": "2025-08-29T00:38:56.447Z",
@@ -136,8 +136,8 @@ Peer selection messages follow this format:
 
 The implementation maintains peer selection state in:
 
-- `codeawareness--selected-peer`: Currently selected peer data
-- `codeawareness--events-table`: Event handler registry
+- `kawacode--selected-peer`: Currently selected peer data
+- `kawacode--events-table`: Event handler registry
 - Diff buffers: Automatically created and managed
 
 ### Integration Points
@@ -145,4 +145,4 @@ The implementation maintains peer selection state in:
 - **IPC System**: Uses existing IPC infrastructure for communication
 - **Buffer Management**: Integrates with Emacs buffer management
 - **Project System**: Uses active project information for diff requests
-- **Event System**: Centralized event handling for all CodeAwareness events
+- **Event System**: Centralized event handling for all Kawacode events

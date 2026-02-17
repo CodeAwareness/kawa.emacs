@@ -22,9 +22,9 @@ The local service sends JSON data with this structure:
 The `hl` field contains line numbers (0-based) that need highlighting.
 
 ### 2. Data Processing
-- `codeawareness--handle-repo-active-path-response` extracts the `hl` data
-- `codeawareness--convert-hl-to-highlights` converts 0-based line numbers to 1-based (Emacs convention)
-- `codeawareness--apply-highlights-from-data` applies the highlights to the buffer
+- `kawacode--handle-repo-active-path-response` extracts the `hl` data
+- `kawacode--convert-hl-to-highlights` converts 0-based line numbers to 1-based (Emacs convention)
+- `kawacode--apply-highlights-from-data` applies the highlights to the buffer
 
 ### 3. Highlighting System
 - Uses Emacs overlays for temporary highlighting
@@ -50,15 +50,15 @@ The highlighting system now uses the same technique as `hl-line.el`:
 ## Configuration Options
 
 ### Highlighting Behavior
-- `codeawareness-highlight-intensity`: Highlight intensity (0.0 to 1.0)
-- `codeawareness-highlight-refresh-delay`: Delay before refreshing highlights
-- `codeawareness-highlight-persistent`: Persist highlights across buffer switches
-- `codeawareness-full-width-highlights`: Use full-width highlights
+- `kawacode-highlight-intensity`: Highlight intensity (0.0 to 1.0)
+- `kawacode-highlight-refresh-delay`: Delay before refreshing highlights
+- `kawacode-highlight-persistent`: Persist highlights across buffer switches
+- `kawacode-full-width-highlights`: Use full-width highlights
 
 ### Colors (Theme-Aware)
-- `codeawareness-change-color-light/dark`: Colors for changed lines
-- `codeawareness-peer-color-light/dark`: Colors for peer code
-- `codeawareness-merge-color-light/dark`: Colors for merged code
+- `kawacode-change-color-light/dark`: Colors for changed lines
+- `kawacode-peer-color-light/dark`: Colors for peer code
+- `kawacode-merge-color-light/dark`: Colors for merged code
 
 ## Testing Commands
 
@@ -77,14 +77,14 @@ The highlighting system now uses the same technique as `hl-line.el`:
 ## Implementation Details
 
 ### Key Functions
-1. **`codeawareness--init-highlight-faces`**: Initialize theme-aware faces
-2. **`codeawareness--convert-agg-to-highlights`**: Convert JSON data to highlight format
-3. **`codeawareness--add-highlight`**: Add single highlight to buffer
-4. **`codeawareness--clear-buffer-highlights`**: Clear highlights from buffer
-5. **`codeawareness--apply-highlights-from-data`**: Apply multiple highlights
-6. **NEW**: `codeawareness--init-hl-line-faces`**: Initialize hl-line faces
-7. **NEW**: `codeawareness--add-hl-line-highlight`**: Add hl-line highlight
-8. **NEW**: `codeawareness--apply-hl-line-highlights-from-data`**: Apply hl-line highlights
+1. **`kawacode--init-highlight-faces`**: Initialize theme-aware faces
+2. **`kawacode--convert-agg-to-highlights`**: Convert JSON data to highlight format
+3. **`kawacode--add-highlight`**: Add single highlight to buffer
+4. **`kawacode--clear-buffer-highlights`**: Clear highlights from buffer
+5. **`kawacode--apply-highlights-from-data`**: Apply multiple highlights
+6. **NEW**: `kawacode--init-hl-line-faces`**: Initialize hl-line faces
+7. **NEW**: `kawacode--add-hl-line-highlight`**: Add hl-line highlight
+8. **NEW**: `kawacode--apply-hl-line-highlights-from-data`**: Apply hl-line highlights
 
 ### Data Flow
 1. Local service sends JSON with `agg` data
@@ -104,7 +104,7 @@ The highlighting system now uses the same technique as `hl-line.el`:
 
 ### If colors don't look right:
 1. Check current theme: `(frame-parameter nil 'background-mode)`
-2. Adjust color settings in `codeawareness-config.el`
+2. Adjust color settings in `kawacode-config.el`
 3. Restart Kawa Code mode
 
 ### If empty lines still don't highlight:
