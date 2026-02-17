@@ -1,4 +1,4 @@
-;;; code-awareness-list-pipe.el --- List-Pipes for Kawa Code -*- lexical-binding: t -*-
+;;; kawacode-list-pipe.el --- List-Pipes for Kawa Code -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2018 Isaac Lewis
 
@@ -28,53 +28,53 @@
 ;; Code:
 
 ;;; Required Libraries
-;; For 'code-awareness-pipe-default-newline-delim'
-(require 'code-awareness-pipe)
+;; For 'kawacode-pipe-default-newline-delim'
+(require 'kawacode-pipe)
 
 ;;{{{
 ;;; Customization Variables
 
 ;;; Code:
 
-(defvar code-awareness-list-pipe-debug nil
+(defvar kawacode-list-pipe-debug nil
   "Whether or not to print debugging messages.")
 
-(defvar code-awareness-list-pipe-default-underflow-handler (lambda () (error "Underflow")))
+(defvar kawacode-list-pipe-default-underflow-handler (lambda () (error "Underflow")))
 
 ;;}}}
 
 ;;{{{
 ;;; List Pipe Functions & Macros
 
-(defun code-awareness-list-pipe-make-list-pipe ()
+(defun kawacode-list-pipe-make-list-pipe ()
   "Make a list-based pipe."
   nil)
 
 ;;{{{
 ;;; Peeking Functions
 
-(defun code-awareness-list-pipe-peek (list-pipe)
+(defun kawacode-list-pipe-peek (list-pipe)
   "Return the next character to be read from pipe, but don't modify the pipe.
 Argument LIST-PIPE the unix pipe."
   (car list-pipe))
 
-(defun code-awareness-list-pipe-ln (list-pipe)
+(defun kawacode-list-pipe-ln (list-pipe)
   "Return the next line to be read from pipe, but don't modify the pipe.
 Argument LIST-PIPE the unix pipe."
-  (let ((line (code-awareness-list-pipe-read-ln! list-pipe)))
+  (let ((line (kawacode-list-pipe-read-ln! list-pipe)))
     (dolist (char (reverse line))
       ;; unread the character
-      (code-awareness-list-pipe-read! list-pipe char))))
+      (kawacode-list-pipe-read! list-pipe char))))
 
-(defun code-awareness-list-pipe-sexp (list-pipe)
+(defun kawacode-list-pipe-sexp (list-pipe)
   "Return the next sexp to be read from pipe, but don't modify the pipe.
 Argument LIST-PIPE the unix pipe."
-  (let ((sexp (code-awareness-list-pipe-read-sexp! list-pipe)))
+  (let ((sexp (kawacode-list-pipe-read-sexp! list-pipe)))
     (dolist (char (reverse sexp))
       ;; unread the character
-      (code-awareness-list-pipe-read! list-pipe char))))
+      (kawacode-list-pipe-read! list-pipe char))))
 
-(defun code-awareness-list-pipe-peek-all (list-pipe)
+(defun kawacode-list-pipe-peek-all (list-pipe)
   "Return a string containing all of `LIST-PIPE's currently available input.
 But don't modify `list-pipe'."
   (concat list-pipe))
@@ -84,7 +84,7 @@ But don't modify `list-pipe'."
 ;;{{{
 ;;; Reading Macros
 
-(defmacro code-awareness-list-pipe-read! (list-pipe &optional unread underflow-handler)
+(defmacro kawacode-list-pipe-read! (list-pipe &optional unread underflow-handler)
   "Read a character from `LIST-PIPE'.
 Optional argument UNREAD the character or string.
 Optional argument UNDERFLOW-HANDLER handler in case of underflow"
@@ -105,26 +105,26 @@ Optional argument UNDERFLOW-HANDLER handler in case of underflow"
            (push unread2 ,list-pipe)
          (or (pop ,list-pipe)
              (funcall (or ,underflow-handler
-                          code-awareness-list-pipe-default-underflow-handler)))))))
+                          kawacode-list-pipe-default-underflow-handler)))))))
 
-(defmacro code-awareness-list-pipe-read-ln! (list-pipe)
+(defmacro kawacode-list-pipe-read-ln! (list-pipe)
   "Read a line from `LIST-PIPE'."
   `(let ((chars '()))
      (while (not
              (funcall (lambda (chars)
-                        (string-suffix-p code-awareness-pipe-default-newline-delim
+                        (string-suffix-p kawacode-pipe-default-newline-delim
                                          (concat chars)))
                       (setf chars (append chars
-                                          (list (code-awareness-list-pipe-read! ,list-pipe)))))))
+                                          (list (kawacode-list-pipe-read! ,list-pipe)))))))
      (concat chars)))
 
-(defmacro code-awareness-list-pipe-read-sexp! (list-pipe)
+(defmacro kawacode-list-pipe-read-sexp! (list-pipe)
   "Read an sexp from `LIST-PIPE'."
   `(read (lambda (&optional unread)
-           (code-awareness-list-pipe-read! ,list-pipe unread))))
+           (kawacode-list-pipe-read! ,list-pipe unread))))
 
 
-(defmacro code-awareness-list-pipe-read-all! (list-pipe)
+(defmacro kawacode-list-pipe-read-all! (list-pipe)
   "Read all available characters from `LIST-PIPE'."
   `(prog1
        (concat ,list-pipe)
@@ -135,7 +135,7 @@ Optional argument UNDERFLOW-HANDLER handler in case of underflow"
 ;;{{{
 ;;; Writing Macros
 
-(defmacro code-awareness-list-pipe-write! (list-pipe str-or-char)
+(defmacro kawacode-list-pipe-write! (list-pipe str-or-char)
   "Write a character to `LIST-PIPE'.
 Argument STR-OR-CHAR char or string."
   `(progn
@@ -148,19 +148,19 @@ Argument STR-OR-CHAR char or string."
            (t
             (error "Str-or-char must be a string or character")))))
 
-(defmacro code-awareness-list-pipe-write-ln! (list-pipe &optional str-or-char)
+(defmacro kawacode-list-pipe-write-ln! (list-pipe &optional str-or-char)
   "Write `string' followed by a new line delimiter to `pipe'.
 Argument LIST-PIPE the unix pipe.
 Optional argument STR-OR-CHAR char or string to write."
-  `(code-awareness-list-pipe-write! ,list-pipe (concat ,(or str-or-char "")
-                                                      code-awareness-pipe-default-newline-delim)))
+  `(kawacode-list-pipe-write! ,list-pipe (concat ,(or str-or-char "")
+                                                      kawacode-pipe-default-newline-delim)))
 
-(defmacro code-awareness-list-pipe-write-sexp! (list-pipe sexp)
+(defmacro kawacode-list-pipe-write-sexp! (list-pipe sexp)
   "Write `string' followed by a new line delimiter to `pipe'.
 Argument LIST-PIPE the unix pipe.
 Argument SEXP the symbolic expression to write."
-  `(progn (code-awareness-list-pipe-write! ,list-pipe (prin1-to-string ,sexp))
-          (code-awareness-list-pipe-write! ,list-pipe " ")))
+  `(progn (kawacode-list-pipe-write! ,list-pipe (prin1-to-string ,sexp))
+          (kawacode-list-pipe-write! ,list-pipe " ")))
 
 ;;}}}
 
@@ -168,5 +168,5 @@ Argument SEXP the symbolic expression to write."
 
 ;;}}}
 
-(provide 'code-awareness-list-pipe)
-;;; code-awareness-list-pipe.el ends here
+(provide 'kawacode-list-pipe)
+;;; kawacode-list-pipe.el ends here

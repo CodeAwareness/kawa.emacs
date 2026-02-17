@@ -5,23 +5,23 @@
 
 ;; Method 1: Load from a specific path (for development)
 ;; Replace "/path/to/ca.emacs" with the actual path to your ca.emacs directory
-(let ((code-awareness-path "~/Code/CodeAwareness/ca.emacs"))  ; Adjust this path
-  (when (file-exists-p code-awareness-path)
-    (add-to-list 'load-path code-awareness-path)
-    (require 'code-awareness)))
+(let ((kawacode-path "~/Code/kawa.emacs"))  ; Adjust this path
+  (when (file-exists-p kawacode-path)
+    (add-to-list 'load-path kawacode-path)
+    (require 'kawacode)))
 
 ;; Method 2: Enable Kawa Code by default
-;; (code-awareness-mode 1)
+;; (kawacode-mode 1)
 
 ;; Method 3: Enable for specific modes
-;; (add-hook 'prog-mode-hook #'code-awareness-mode)
+;; (add-hook 'prog-mode-hook #'kawacode-mode)
 
 ;; Optional: Configure settings
-;; (setq code-awareness-debug t)
-;; (setq code-awareness-update-delay 0.3)
+;; (setq kawacode-debug t)
+;; (setq kawacode-update-delay 0.3)
 
 ;; Optional: Add keybindings
 ;; (map! :leader
-;;       (:prefix ("a" . "code-awareness")
-;;        "r" #'code-awareness-refresh
-;;        "l" #'code-awareness-show-log-buffer))
+;;       (:prefix ("a" . "kawacode")
+;;        "r" #'kawacode-refresh
+;;        "l" #'kawacode-show-log-buffer))

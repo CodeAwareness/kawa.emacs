@@ -5,22 +5,22 @@
 
 ;; Method 1: Load from a specific path (for development)
 ;; Replace "/path/to/ca.emacs" with the actual path to your ca.emacs directory
-(let ((code-awareness-path "~/Code/CodeAwareness/ca.emacs"))  ; Adjust this path
-  (when (file-exists-p code-awareness-path)
-    (add-to-list 'load-path code-awareness-path)
-    (require 'code-awareness)))
+(let ((kawacode-path "~/Code/kawa.emacs"))  ; Adjust this path
+  (when (file-exists-p kawacode-path)
+    (add-to-list 'load-path kawacode-path)
+    (require 'kawacode)))
 
 ;; Method 2: If you want to enable Kawa Code by default
 ;; Uncomment the following line:
-;; (code-awareness-mode 1)
+;; (kawacode-mode 1)
 
 ;; Method 3: If you want to enable it only for specific modes
-;; (add-hook 'prog-mode-hook #'code-awareness-mode)
+;; (add-hook 'prog-mode-hook #'kawacode-mode)
 
 ;; Optional: Configure Kawa Code settings
-;; (setq code-awareness-debug t)  ; Enable debug mode
-;; (setq code-awareness-update-delay 0.3)  ; Faster updates
+;; (setq kawacode-debug t)  ; Enable debug mode
+;; (setq kawacode-update-delay 0.3)  ; Faster updates
 
 ;; Optional: Add keybindings to Spacemacs
-;; (spacemacs/set-leader-keys "a r" 'code-awareness-refresh)
-;; (spacemacs/set-leader-keys "a l" 'code-awareness-show-log-buffer)
+;; (spacemacs/set-leader-keys "a r" 'kawacode-refresh)
+;; (spacemacs/set-leader-keys "a l" 'kawacode-show-log-buffer)
