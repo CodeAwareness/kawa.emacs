@@ -21,18 +21,30 @@
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ;; This package is licensed under GPLv3. It depends on the Kawa Code
-;; binary, available at https://codeawareness.com
+;; binary, available at https://codeawareness.com/product
 
 ;;; Commentary:
 
-;; This is an Emacs extension for Kawa Code, a collaboration tool
-;; that highlights code intersections between your working copy and other
-;; team members.  This provides an early warning system for merge conflicts,
-;; as well as instant traveling between working copies of multiple developers
-;; without needing to commit and push.
+;; Emacs integration for Kawa Code (https://codeawareness.com/product),
+;; a real-time collaboration platform for software teams.
 ;;
-;; This package requires the Kawa Code application to be installed and
-;; running.  See https://codeawareness.com for more information.
+;; Kawa Code is a standalone desktop application that monitors your
+;; working copy and communicates with team members via a cloud service.
+;; This package connects Emacs to the Kawa Code app over a local socket,
+;; enabling the following features directly in your editor:
+;;
+;; - Live diff highlights showing where your code intersects with
+;;   teammates' uncommitted changes (early merge-conflict warning)
+;; - One-click navigation between your version and a peer's version
+;;   of the same file, without committing or pushing
+;; - Per-file peer selection to compare against specific team members
+;; - Intent-driven development (more details on Code Awareness website)
+;; - Other possible features via Kawa Code extensions
+;;
+;; Requirements:
+;;   - The Kawa Code desktop app must be installed and running.
+;;     Download it from https://codeawareness.com/product
+;;   - Emacs 27.1 or later
 
 ;;; Code:
 
