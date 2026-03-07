@@ -4,7 +4,7 @@ This document describes the peer selection functionality in Kawacode for Emacs, 
 
 ## Overview
 
-When a peer is selected in the Muninn app, the local service sends a `peer:select` message to the Emacs client. The Emacs implementation then:
+When a peer is selected in the Kawa Code app, the local service sends a `peer:select` message to the Emacs client. The Emacs implementation then:
 
 1. Receives the peer selection event
 2. Sends a `code:diff-peer` request to get the diff information
@@ -23,7 +23,7 @@ The implementation uses an event-driven architecture with a centralized event ha
 
 ### Message Flow
 
-1. **Peer Selection**: Muninn app sends a `code:peer:select` message with peer data
+1. **Peer Selection**: Kawa Code app sends a `code:peer:select` message with peer data
 2. **Event Routing**: Message is routed to the appropriate handler via the events table
 3. **Diff Request**: Emacs sends a `code:diff-peer` request with project and peer information
 4. **Diff Response**: Local service responds with peer file path and diff metadata
@@ -45,7 +45,7 @@ The peer selection functionality works automatically when:
 
 1. Kawacode mode is enabled (`M-x kawacode-mode`)
 2. You have an active file open
-3. A peer is selected in the Muninn app
+3. A peer is selected in the Kawa Code app
 
 ### Manual Testing
 

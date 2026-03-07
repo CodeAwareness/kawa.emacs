@@ -105,7 +105,7 @@
 
 ;;;###autoload
 (defcustom kawacode-selection-delay 0.15
-  "Delay in seconds before sending cursor position to Muninn."
+  "Delay in seconds before sending cursor position to Kawa Code."
   :type 'number
   :group 'kawacode-config)
 
@@ -192,10 +192,10 @@ Argument DARK-COLOR color for dark theme."
 ;;; Internal Variables
 
 (defvar kawacode--caw nil
-  "Client ID assigned by Muninn via handshake.")
+  "Client ID assigned by Kawa Code via handshake.")
 
 (defvar kawacode--ipc-process nil
-  "IPC process for communicating with Muninn.")
+  "IPC process for communicating with Kawa Code.")
 
 (defvar kawacode--response-handlers (make-hash-table :test 'equal)
   "Hash table of response handlers for IPC requests.")
@@ -212,6 +212,10 @@ Argument DARK-COLOR color for dark theme."
 (defvar kawacode--update-timer nil
   "Timer for debounced updates.")
 
+(defvar kawacode--fs-watcher nil
+  "File system watcher descriptor for the Kawa Code socket directory.
+Non-nil when actively watching for the socket to appear (macOS/Linux only).")
+
 (defvar kawacode--connected nil
   "Whether we're connected to the Kawa Code IPC.")
 
@@ -225,7 +229,7 @@ Argument DARK-COLOR color for dark theme."
   "Timer for debounced cursor position updates.")
 
 (defvar kawacode--last-cursor-line nil
-  "Last cursor line number sent to Muninn.")
+  "Last cursor line number sent to Kawa Code.")
 
 (defvar kawacode--is-cycling nil
   "Non-nil when actively cycling through peer diff blocks.")
@@ -839,30 +843,32 @@ builds), then falls back to the non-sandboxed path."
 
 (defun kawacode--ipc-sentinel (_process event)
   "Handle IPC process sentinel EVENTs."
-  (kawacode-log-info "Muninn IPC: %s" event)
+  (kawacode-log-info "Kawa Code IPC: %s" event)
   (cond
-   ((string-match "failed" event)
-    (kawacode-log-error "Muninn connection failed")
-    (setq kawacode--connected nil)
-    (kawacode--update-mode-line)
-    ;; Retry connection
-    (run-with-timer 2.0 nil #'kawacode--connect-to-muninn))
-   ((string-match "exited" event)
-    (kawacode-log-warn "Muninn connection closed")
-    (setq kawacode--connected nil)
-    (kawacode--update-mode-line))
-   ((string-match "connection broken by remote peer" event)
-    (kawacode-log-warn "Muninn rejected connection")
-    (setq kawacode--connected nil)
-    (kawacode--update-mode-line)
-    ;; Retry connection after a delay
-    (run-with-timer 2.0 nil #'kawacode--connect-to-muninn))
    ((string-match "open" event)
-    (kawacode-log-info "Successfully connected to Muninn")
+    (kawacode--stop-socket-watcher)
+    (kawacode-log-info "Successfully connected to Kawa Code")
     (setq kawacode--connected t)
     (kawacode--update-mode-line)
-    ;; Send handshake to receive CAW ID from Muninn
     (kawacode--send-handshake))
+   ((string-match "failed" event)
+    (kawacode-log-error "Kawa Code connection failed")
+    (setq kawacode--connected nil)
+    (kawacode--update-mode-line)
+    (if (eq system-type 'windows-nt)
+        (run-with-timer 2.0 nil #'kawacode--connect-to-muninn)
+      (kawacode--start-socket-watcher)))
+   ((string-match "connection broken by remote peer" event)
+    (kawacode-log-warn "Kawa Code disconnected")
+    (setq kawacode--connected nil)
+    (kawacode--update-mode-line)
+    (if (eq system-type 'windows-nt)
+        (run-with-timer 2.0 nil #'kawacode--connect-to-muninn)
+      (kawacode--start-socket-watcher)))
+   ((string-match "exited" event)
+    (kawacode-log-warn "Kawa Code connection closed")
+    (setq kawacode--connected nil)
+    (kawacode--update-mode-line))
    (t
     (kawacode-log-warn "Unknown IPC sentinel event: %s" event))))
 
@@ -940,19 +946,19 @@ Argument DATA additional data received from Kawa Code (JSON)."
   (let* ((key (format "res:%s:%s" domain action))
          (handler (gethash key kawacode--response-handlers)))
     (cond
-     ;; Handshake response (Muninn doesn't echo _msgId)
+     ;; Handshake response (Kawa Code doesn't echo _msgId)
      ((and (string= domain "system") (string= action "handshake"))
       (kawacode--handle-handshake-response data) t)
      ;; Auth responses — domain "auth" from Gardener
      ((and (string= domain "auth") (or (string= action "info") (string= action "login")))
       (kawacode--handle-auth-info-response data) t)
-     ;; Open peer file broadcast from Muninn (domain "code")
+     ;; Open peer file broadcast from Kawa Code (domain "code")
      ((and (string= domain "code") (string= action "open-peer-file"))
       (kawacode--handle-open-peer-file-response data) t)
-     ;; Sync setup broadcast from Muninn (domain "code")
+     ;; Sync setup broadcast from Kawa Code (domain "code")
      ((and (string= domain "code") (string= action "sync:setup"))
       (kawacode--handle-sync-setup-broadcast data) t)
-     ;; Branch diff broadcast from Muninn (domain "code")
+     ;; Branch diff broadcast from Kawa Code (domain "code")
      ((and (string= domain "code") (string= action "branch:select"))
       (kawacode--handle-branch-diff-response data) t)
      ;; Other responses with registered handlers
@@ -966,9 +972,9 @@ EXPECTED-FILE-PATH is the
 file path that was originally requested (for validation).
 Argument DATA the data received from Kawa Code application."
   (kawacode-log-info "Received code:active-path response")
-  ;; Unwrap project envelope (Muninn may wrap in { project: {...} })
+  ;; Unwrap project envelope (Kawa Code may wrap in { project: {...} })
   (let* ((project (or (alist-get 'project data) data))
-         ;; Map highlights→hl (Muninn may use either field name)
+         ;; Map highlights→hl (Kawa Code may use either field name)
          (hl-data (or (alist-get 'hl project) (alist-get 'highlights project)))
          (buffer kawacode--active-buffer))
     ;; Add the unwrapped project to our store
@@ -1010,7 +1016,7 @@ Argument DATA the data received from Kawa Code application."
     (kawacode-log-warn "No authentication data received - user needs to authenticate")))
 
 (defun kawacode--handle-peer-select (peer-data)
-  "Handle peer selection event from Muninn app.
+  "Handle peer selection event from Kawa Code app.
 Argument PEER-DATA the data received from Kawa Code (peer info)."
   (kawacode-log-info "Peer selected: %s (data keys: %s)"
                           (alist-get 'name peer-data)
@@ -1042,7 +1048,7 @@ Argument PEER-DATA the data received from Kawa Code (peer info)."
         (kawacode--transmit "diff-peer" message-data))))))
 
 (defun kawacode--handle-peer-unselect ()
-  "Handle peer unselection event from Muninn app."
+  "Handle peer unselection event from Kawa Code app."
   (kawacode-log-info "Peer unselected")
   (setq kawacode--selected-peer nil)
   ;; Close any open diff buffers
@@ -1180,7 +1186,7 @@ Argument FILE2 the second file in the diff command."
   "Handle BRANCH selection event.
 Two cases:
 1. String branch name from webview - transmit to Gardener for processing
-2. Response data from Gardener/Muninn with peerFile/userFile
+2. Response data from Gardener/Kawa Code with peerFile/userFile
    - open diff directly
 Argument BRANCH-OR-DATA either a string branch name or an alist with diff data."
   (cond
@@ -1202,7 +1208,7 @@ Argument BRANCH-OR-DATA either a string branch name or an alist with diff data."
           (kawacode--transmit "branch:select" message-data)
           (kawacode--setup-response-handler "code" "branch:select")))))
 
-   ;; Case 3: Already-processed diff data from Muninn with peerFile and userFile
+   ;; Case 3: Already-processed diff data from Kawa Code with peerFile and userFile
    ((and (listp branch-or-data)
          (alist-get 'peerFile branch-or-data)
          (alist-get 'userFile branch-or-data))
@@ -1404,47 +1410,80 @@ Argument ERROR-DATA error message received from the request."
 
 ;;; Connection Management
 
+(defun kawacode--get-muninn-socket-dir ()
+  "Return the directory that contains the Kawa Code socket, or nil on Windows."
+  (unless (eq system-type 'windows-nt)
+    (file-name-directory (kawacode--get-muninn-socket-path))))
+
+(defun kawacode--socket-watcher-callback (event)
+  "React to file-notify EVENT in the Kawa Code socket directory."
+  (let ((event-type (nth 1 event))
+        (file (nth 2 event)))
+    (when (and (memq event-type '(created changed))
+               (string-suffix-p "muninn" file))
+      (kawacode-log-info "Kawa Code socket appeared, attempting connection")
+      (kawacode--stop-socket-watcher)
+      (run-with-timer 0.1 nil #'kawacode--connect-to-muninn))))
+
+(defun kawacode--start-socket-watcher ()
+  "Watch the Kawa Code socket directory for the socket file to appear.
+Used on macOS and Linux as an event-driven alternative to polling.
+Does nothing on Windows (named pipes have no filesystem path to watch)."
+  (when (and (not (eq system-type 'windows-nt))
+             (featurep 'filenotify)
+             (not kawacode--fs-watcher))
+    (let ((socket-dir (kawacode--get-muninn-socket-dir)))
+      (when socket-dir
+        (unless (file-directory-p socket-dir)
+          (make-directory socket-dir t))
+        (condition-case err
+            (setq kawacode--fs-watcher
+                  (file-notify-add-watch socket-dir
+                                         '(change)
+                                         #'kawacode--socket-watcher-callback))
+          (error
+           (kawacode-log-warn "file-notify unavailable, falling back to timer retry: %s" err)
+           (run-with-timer 5.0 nil #'kawacode--connect-to-muninn)))))))
+
+(defun kawacode--stop-socket-watcher ()
+  "Stop the file system watcher for the Kawa Code socket directory."
+  (when kawacode--fs-watcher
+    (file-notify-rm-watch kawacode--fs-watcher)
+    (setq kawacode--fs-watcher nil)))
+
 (defun kawacode--init-ipc ()
-  "Initialize IPC by connecting directly to Muninn socket."
-  (kawacode-log-info "Initializing IPC - connecting to Muninn")
+  "Initialize IPC by connecting directly to Kawa Code socket."
+  (kawacode-log-info "Initializing IPC - connecting to Kawa Code")
   (kawacode--connect-to-muninn))
 
 (defun kawacode--connect-to-muninn ()
-  "Connect directly to Muninn socket and perform handshake."
+  "Connect directly to Kawa Code socket and perform handshake.
+The connection is non-blocking (:nowait t); the sentinel handles
+the \"open\" or \"failed\" event asynchronously."
   (let* ((socket-path (kawacode--get-muninn-socket-path))
          (process-name "kawacode-muninn")
          (buffer-name "*kawacode-muninn*"))
-    (kawacode-log-info "Connecting to Muninn at %s" socket-path)
+    (kawacode-log-info "Connecting to Kawa Code at %s" socket-path)
     (condition-case err
-        (progn
-          (setq kawacode--ipc-process
-                (make-network-process
-                 :name process-name
-                 :buffer buffer-name
-                 :family 'local
-                 :service socket-path
-                 :sentinel #'kawacode--ipc-sentinel
-                 :filter #'kawacode--ipc-filter
-                 :noquery t))
-          (kawacode-log-info "Muninn connection initiated (status: %s)"
-                                  (process-status kawacode--ipc-process))
-          ;; For local sockets the connection is synchronous — the
-          ;; process may already be open before the sentinel fires.
-          ;; Handle that explicitly so the handshake isn't missed.
-          (when (eq (process-status kawacode--ipc-process) 'open)
-            (kawacode-log-info "Connection already open, initiating handshake")
-            (setq kawacode--connected t)
-            (kawacode--update-mode-line)
-            (kawacode--send-handshake)))
+        (setq kawacode--ipc-process
+              (make-network-process
+               :name process-name
+               :buffer buffer-name
+               :family 'local
+               :service socket-path
+               :sentinel #'kawacode--ipc-sentinel
+               :filter #'kawacode--ipc-filter
+               :nowait t
+               :noquery t))
       (error
-       (kawacode-log-error "Failed to connect to Muninn: %s" err)
-       (message "Failed to connect to Muninn at %s. Is Kawa Code running? Error: %s"
-                socket-path err)
-       ;; Retry connection after delay
-       (run-with-timer 5.0 nil #'kawacode--connect-to-muninn)))))
+       (kawacode-log-error "Failed to initiate Kawa Code connection: %s" err)
+       ;; On macOS/Linux watch for the socket to appear; on Windows poll.
+       (if (eq system-type 'windows-nt)
+           (run-with-timer 5.0 nil #'kawacode--connect-to-muninn)
+         (kawacode--start-socket-watcher))))))
 
 (defun kawacode--send-handshake ()
-  "Send handshake message to Muninn to receive CAW ID."
+  "Send handshake message to Kawa Code to receive CAW ID."
   (when (and kawacode--ipc-process
              (eq (process-status kawacode--ipc-process) 'open))
     (let* ((msg-id (kawacode--generate-msg-id))
@@ -1453,19 +1492,19 @@ Argument ERROR-DATA error message received from the request."
                                    (action . "handshake")
                                    (data . ((clientType . "emacs")))
                                    (_msgId . ,msg-id)))))
-      (kawacode-log-info "Sending handshake to Muninn")
+      (kawacode-log-info "Sending handshake to Kawa Code")
       (process-send-string kawacode--ipc-process (concat message "\n"))
       ;; Store handler for handshake response
       (puthash msg-id #'kawacode--handle-handshake-response kawacode--pending-requests))))
 
 (defun kawacode--handle-handshake-response (data)
-  "Handle handshake response from Muninn.
+  "Handle handshake response from Kawa Code.
 Argument DATA the response data containing caw ID."
   (let ((caw (alist-get 'caw data)))
     (if caw
         (progn
           (setq kawacode--caw caw)
-          (kawacode-log-info "Received CAW ID from Muninn: %s" caw)
+          (kawacode-log-info "Received CAW ID from Kawa Code: %s" caw)
           (message "Connected to Kawa Code (CAW: %s)" caw)
           ;; Now initialize workspace
           (kawacode--init-workspace))
@@ -1473,7 +1512,7 @@ Argument DATA the response data containing caw ID."
       (message "Handshake failed - no CAW ID received"))))
 
 (defun kawacode--send-sync-setup ()
-  "Send sync:setup to register for push notifications from Muninn.
+  "Send sync:setup to register for push notifications from Kawa Code.
 Uses raw emit (not transmit) to match VSCode pattern."
   (when (and kawacode--ipc-process
              (eq (process-status kawacode--ipc-process) 'open)
@@ -1486,7 +1525,7 @@ Uses raw emit (not transmit) to match VSCode pattern."
       (process-send-string kawacode--ipc-process (concat message "\n")))))
 
 (defun kawacode--handle-sync-setup-broadcast (_data)
-  "Handle sync:setup broadcast from Muninn indicating sync completed."
+  "Handle sync:setup broadcast from Kawa Code indicating sync completed."
   (kawacode-log-info "Received sync:setup broadcast, refreshing active file")
   (kawacode--refresh-active-file))
 
@@ -1501,8 +1540,8 @@ Uses raw emit (not transmit) to match VSCode pattern."
   (run-with-timer 0.1 nil #'kawacode--send-auth-info))
 
 (defun kawacode--request-tmp-dir ()
-  "Request temp directory from Muninn."
-  (kawacode-log-info "Requesting temp directory from Muninn")
+  "Request temp directory from Kawa Code."
+  (kawacode-log-info "Requesting temp directory from Kawa Code")
   (if (and kawacode--ipc-process
            (eq (process-status kawacode--ipc-process) 'open))
       (progn
@@ -1558,7 +1597,8 @@ Argument DATA the data received from Kawa Code application."
   "Force cleanup of all Kawa Code processes and state."
   (kawacode-log-info "Force cleaning up all processes")
 
-  ;; Cancel any pending timers
+  ;; Cancel any pending timers and watchers
+  (kawacode--stop-socket-watcher)
   (when kawacode--update-timer
     (cancel-timer kawacode--update-timer)
     (setq kawacode--update-timer nil))
@@ -1578,7 +1618,7 @@ Argument DATA the data received from Kawa Code application."
             (process-send-eof kawacode--ipc-process))
           ;; Force delete the process
           (delete-process kawacode--ipc-process)
-          (kawacode-log-info "Force deleted Muninn IPC process"))
+          (kawacode-log-info "Force deleted Kawa Code IPC process"))
       (error
        (kawacode-log-error "Error deleting IPC process: %s" err)))
     (setq kawacode--ipc-process nil))
@@ -1602,10 +1642,10 @@ Argument DATA the data received from Kawa Code application."
   (kawacode-log-info "Force cleanup completed"))
 
 (defun kawacode--send-disconnect-messages ()
-  "Send disconnect message to Muninn."
+  "Send disconnect message to Kawa Code."
   (kawacode-log-info "Sending disconnect messages")
 
-  ;; Send disconnect message to Muninn
+  ;; Send disconnect message to Kawa Code
   (when (and kawacode--ipc-process
              (eq (process-status kawacode--ipc-process) 'open)
              kawacode--caw)
@@ -1614,16 +1654,16 @@ Argument DATA the data received from Kawa Code application."
                                   (action . "disconnect")
                                   (data . ((caw . ,kawacode--caw)))
                                   (caw . ,kawacode--caw)))))
-      (kawacode-log-info "Sending disconnect to Muninn")
+      (kawacode-log-info "Sending disconnect to Kawa Code")
       (condition-case err
           (process-send-string kawacode--ipc-process (concat message "\n"))
         (error
-         (kawacode-log-error "Failed to send disconnect to Muninn: %s" err))))))
+         (kawacode-log-error "Failed to send disconnect to Kawa Code: %s" err))))))
 
 ;;; Cursor Tracking
 
 (defun kawacode--selection-changed ()
-  "Send cursor position and symbol context to Muninn."
+  "Send cursor position and symbol context to Kawa Code."
   (setq kawacode--selection-timer nil)
   (condition-case nil
       (when (and kawacode--authenticated
@@ -1832,7 +1872,7 @@ BEG, END, LEN are standard `after-change-functions' arguments."
 (defun kawacode-connection-status ()
   "Show the current connection status."
   (interactive)
-  (message "Muninn connected: %s, CAW ID: %s, Authenticated: %s"
+  (message "Kawa Code connected: %s, CAW ID: %s, Authenticated: %s"
            (if (and kawacode--ipc-process
                     (eq (process-status kawacode--ipc-process) 'open)) "yes" "no")
            (or kawacode--caw "none")
