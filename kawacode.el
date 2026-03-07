@@ -824,22 +824,15 @@ Argument HIGHLIGHT-DATA the array of lines to highlight."
 
 (defun kawacode--get-muninn-socket-path ()
   "Get the muninn socket path for direct connection.
-On macOS, checks the App Sandbox container first (for App Store
-builds), then falls back to the non-sandboxed path."
+On macOS/Linux, uses ~/.kawa-code/sockets/muninn (matching Muninn 5.x).
+On Windows, uses the named pipe."
   (cond
    ((eq system-type 'windows-nt)
     "\\\\.\\pipe\\muninn")
-   ((eq system-type 'darwin)
-    (let ((container-dir (expand-file-name
-                          "Library/Containers/com.codeawareness.muninn/Data/Library/Application Support/Kawa Code/sockets"
-                          (getenv "HOME"))))
-      (if (file-directory-p container-dir)
-          (expand-file-name "muninn" container-dir)
-        (expand-file-name "muninn"
-                          (expand-file-name "Library/Application Support/Kawa Code/sockets"
-                                            (getenv "HOME"))))))
    (t
-    (format "%s/sockets/muninn" (expand-file-name "~/.kawacode")))))
+    (expand-file-name "muninn"
+                      (expand-file-name ".kawa-code/sockets"
+                                        (getenv "HOME"))))))
 
 (defun kawacode--ipc-sentinel (_process event)
   "Handle IPC process sentinel EVENTs."
